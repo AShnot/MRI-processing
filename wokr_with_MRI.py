@@ -5,8 +5,9 @@ import pydicom as pyd
 from pydicom.errors import InvalidDicomError
 from unidecode import unidecode
 
+
 data_path = r'C:\Users\Admin\Desktop\MRI-processing\data'
-path_to_one = r'C:\Users\Admin\Desktop\MRI-processing\data\Долматов МС'
+path_to_one = r'C:\Users\Admin\Desktop\MRI-processing\data\Dolmatov_MS'
 
 def transform_dicom_to_nifti(path_to_scrutiny :str, orientation :str, mode : list[str]):
 	'''
@@ -27,11 +28,22 @@ def transform_dicom_to_nifti(path_to_scrutiny :str, orientation :str, mode : lis
 				dicom_data = pyd.dcmread(path_to_file)
 				print(path_to_file)
 			except InvalidDicomError:
+				print(f"Файл невозможно прочитать. Имя файла: {path_to_file}.")
 				continue
+			try:
+				check = np.abs(np.round(dicom_data.ImageOrientationPatient))
+				bool_orientation = filter_orintation == check
+			except AttributeError:
+				print(f'Ориентация указана неверно. Имя файла: {path_to_file}')
+				continue
+			series = dicom_data.SeriesDescription.lower()
+			bool_mode = any(mini_mode.lower() in series for mini_mode in mode)
+			if bool_mode and bool_orientation:
+				print('xnj n')
 
 
 
-#transform_dicom_to_nifti(path_to_one)
+transform_dicom_to_nifti(path_to_one,'axial',['flair','fluid'])
 #нет смысла в функции
 # def get_data(path_to_dir):
 # 	'''
