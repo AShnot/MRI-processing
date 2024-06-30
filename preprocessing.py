@@ -129,10 +129,14 @@ def create_yolo_data(path_to_nifti, new_points_lps, yolo_path):
                 dct[file[0]] = mass
         plt.imshow(epi_img.get_fdata()[:,:,i],cmap='gray')
         plt.axis('off')
-        plt.savefig(os.path.join(path_to_images,f'{i}.png'), bbox_inches='tight', pad_inches=0,transparent=True)
+        plt.savefig(os.path.join(path_to_images,f'{i}.png'), bbox_inches='tight', pad_inches=0)
         for key,value in dct.items():
-            img = Image.fromarray(value*255).convert('L')
-            img.save(os.path.join(path_to_annotation,f'{key}_{i}.png'))
+            # img = Image.fromarray(value*255).convert('L')
+            # img.save(os.path.join(path_to_annotation,f'{key}_{i}.png'))
+            plt.imshow(value, cmap='gray')
+            plt.axis('off')
+            name = f'{key}_{i}.png'
+            plt.savefig(os.path.join(path_to_annotation,name), bbox_inches='tight', pad_inches=0)
 
 path = transform_dicom_to_nifti(path_to_one,'ax',['flair','fluid'])
 markups = create_demyelination_areas_markups(path,path_to_one)
