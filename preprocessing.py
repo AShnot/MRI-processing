@@ -8,14 +8,22 @@ import shutil
 import dicom2nifti
 import json
 import cv2
-from PIL import Image
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+from path_file import path_routing
 
-root_path = os.path.dirname(os.path.abspath(__file__))
-data_path = r'C:\Users\Admin\Desktop\MRI-processing\data'
-path_to_one = r'C:\Users\Admin\Desktop\MRI-processing\data\Dolmatov_MS'
+path_to_one = os.path.join(path_routing.marked_mri_path,'Dolmatov_MS')
+
+def rename_file_to_unicode(path_to_dir):
+    '''
+    :param path_to_dir: путь до биректории которую хотим переиметовать
+    :return: файл переименуется в исходной папке, пример: прив е т -> priv_e_т
+    Замечание: меняется только имя папки, но не путь до нее
+    '''
+    path_name = path_to_dir.split(os.path.sep)[:-1]
+    name = unidecode(path_to_dir.split(os.path.sep)[-1]).replace(' ','_')
+    path_name = os.path.join(os.path.sep.join(path_name),name)
+    os.rename(path_to_dir,path_name)
+
+
 def transform_dicom_to_nifti(path_to_scrutiny :str, orientation :str, mode : list[str]):
     '''
     :param path_to_scrutiny: путь до папки с дикомами
@@ -23,12 +31,10 @@ def transform_dicom_to_nifti(path_to_scrutiny :str, orientation :str, mode : lis
     :param mode: режим забора (T1,T2,fluid,flair,...)
     :return: путь до папки с файлом nifti
     '''
-
-    processed = os.path.join(root_path,'processed_data')
-    to_current_folder = os.path.join(processed,path_to_scrutiny.split(os.path.sep)[-1])
+    to_current_folder = os.path.join(path_routing.processed_data_path,path_to_scrutiny.split(os.path.sep)[-1])
     path_to_dicom = os.path.join(to_current_folder,'DICOM')
     path_to_nifti = os.path.join(to_current_folder,'NIFTI')
-    os.makedirs(processed,exist_ok= True)
+    os.makedirs(path_routing.processed_data_path,exist_ok= True)
     os.makedirs(path_to_dicom,exist_ok= True)
     os.makedirs(path_to_nifti,exist_ok= True)
 
@@ -127,30 +133,16 @@ def create_yolo_data(path_to_nifti, new_points_lps, yolo_path):
                 mass = dct[file[0]].copy()
                 cv2.fillPoly(mass, [np.array(contour)], 255)
                 dct[file[0]] = mass
-        plt.imshow(epi_img.get_fdata()[:,:,i],cmap='gray')
-        plt.axis('off')
-        plt.savefig(os.path.join(path_to_images,f'{i}.png'), bbox_inches='tight', pad_inches=0)
+        normalized_slice = cv2.normalize(epi_img.get_fdata()[:,:,i], None, 0, 255, cv2.NORM_MINMAX)
+        img = normalized_slice.astype(np.uint8)
+        cv2.imwrite(os.path.join(path_to_images,f'{i}.png'),img)
         for key,value in dct.items():
-            # img = Image.fromarray(value*255).convert('L')
-            # img.save(os.path.join(path_to_annotation,f'{key}_{i}.png'))
-            plt.imshow(value, cmap='gray')
-            plt.axis('off')
-            name = f'{key}_{i}.png'
-            plt.savefig(os.path.join(path_to_annotation,name), bbox_inches='tight', pad_inches=0)
+            cv2.imwrite(os.path.join(path_to_annotation,f'{key}_{i}.png'),value)
 
 path = transform_dicom_to_nifti(path_to_one,'ax',['flair','fluid'])
 markups = create_demyelination_areas_markups(path,path_to_one)
 create_yolo_data(path,markups,os.path.sep.join(path.split(os.path.sep)[:-1]))
 
-def rename_file_to_unicode(path_to_dir):
-    '''
-    :param path_to_dir: путь до биректории которую хотим переиметовать
-    :return: файл переименуется в исходной папке, пример: прив е т -> priv_e_т
-    Замечание: меняется только имя папки, но не путь до нее
-    '''
-    path_name = path_to_dir.split(os.path.sep)[:-1]
-    name = unidecode(path_to_dir.split(os.path.sep)[-1]).replace(' ','_')
-    path_name = os.path.join(os.path.sep.join(path_name),name)
-    os.rename(path_to_dir,path_name)
+
 
 #Добавить полосу загрузки через консоль
